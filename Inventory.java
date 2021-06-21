@@ -8,8 +8,6 @@ import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
 
-// import com.beust.jcommander.Parameter;
-
 public class Inventory{
 
     // reading the Ingredient book from the pre populated hash table in Ingredients.java file
@@ -36,43 +34,49 @@ public class Inventory{
             }
         }
 
-        // An arraylist to store multiple Order objects
+        // An arraylist to store multiple input Order objects
         ArrayList<Order> allOrders = new ArrayList<Order>();
 
-        // creating a nested hastable to store the number of each ingredites for each hour-day of week - month
-        // key is dayOfWeek+month+hourOfFay as the Just in Time order depends on these variables
+        // creating a nested hastable to store the number of each ingredites for each hour,day of week,month
+        // key is dayOfWeek+month+hourOfDay as the Just in Time order depends on these variables
         Hashtable<String,Hashtable<String, Integer>> inventoryNeeds = new Hashtable<String,Hashtable<String, Integer>>();
 
         String line;
-        // if both input file name and output file name are given by user then executing logic for Just-in-Time order 
+        // if both input file name and output file name are given by user then executing logic for forming Just-in-Time order 
         if(correctArgs){
             try (BufferedReader br = new BufferedReader(new FileReader(inputFileName))) {
                 //  reading the headers and ignoring them
                 String headers = br.readLine();
-                // System.out.println(headers);
-                while((line = br.readLine()) != null && !line.trim().equals("")){
+                // read the line until the line is null
+                while((line = br.readLine()) != null ){
                     // System.out.println(line);
-                    String[] orderParts = line.split(",");
+                    // ignoring empty/blank lines and parsing only correct lines
+                    if(!line.trim().equals("")){
+                        String[] orderParts = line.split(",");
 
-                    // converting the drink names to lower getting rid of Trailing whitespaces
-                    String drinkName = orderParts[0].strip().toLowerCase();
-                    if(drinkIngredients.containsKey(drinkName)){
-                        Long epocs = Long.parseLong(orderParts[1].strip());
-                        if(epocs>0 && epocs<=2147483647000L){
-                            Instant orderInstant = Instant.ofEpochMilli(epocs);
-                            int dayOfWeek = orderInstant.atZone(ZoneId.of("UTC")).getDayOfWeek().getValue();
-                            int month = orderInstant.atZone(ZoneId.of("UTC")).getMonth().getValue();
-                            int hour = orderInstant.atZone(ZoneId.of("UTC")).getHour();
-                            // System.out.println(drinkName + " " + dayOfWeek + " "+ month+" "+hour);
-                            Order obj = new Order(drinkName, Integer.toString(dayOfWeek), Integer.toString(month),  Integer.toString(hour));
-                            allOrders.add(obj);
+                        // converting the drink names to lower getting rid of Trailing whitespaces
+                        String drinkName = orderParts[0].strip().toLowerCase();
+                        if(drinkIngredients.containsKey(drinkName)){
+                            Long epocs = Long.parseLong(orderParts[1].strip());
+                            if(epocs>0 && epocs<=2147483647000L){
+                                Instant orderInstant = Instant.ofEpochMilli(epocs);
+                                int dayOfWeek = orderInstant.atZone(ZoneId.of("UTC")).getDayOfWeek().getValue();
+                                int month = orderInstant.atZone(ZoneId.of("UTC")).getMonth().getValue();
+                                int hour = orderInstant.atZone(ZoneId.of("UTC")).getHour();
+                                // System.out.println(drinkName + " " + dayOfWeek + " "+ month+" "+hour);
+                                Order obj = new Order(drinkName, Integer.toString(dayOfWeek), Integer.toString(month),  Integer.toString(hour));
+                                allOrders.add(obj);
+                            }
+                        }
+                        else{
+                            System.out.println(drinkName + "is Not a valid drink name");
                         }
                     }
-                    else{
-                        System.out.println(drinkName + "is Not a valid drink name");
-                    }
+
                     // System.out.println(allOrders.size());
                 }
+
+                // forming the just-in-time order units using list of all input orders
                 inventoryNeeds = formInvenOrderInfo(allOrders);
                 
                 //  writing to output csv file along with headers
@@ -103,19 +107,20 @@ public class Inventory{
             Hashtable<String,Hashtable<String, Integer>> inventoryNeeds = new Hashtable<String,Hashtable<String, Integer>>();
             for(Order singleOrder: allOrders){
                 String keyToStore = singleOrder.dayOfWeek+", "+ singleOrder.month+", "+singleOrder.hourOfDay;
-                // checking if the combination of day + month + hour jey is in dictionary
-                //  if not inserting the key
+                // checking if the combination of day + month + hour jey is in dictionary if not inserting the key
                 if(!inventoryNeeds.containsKey(keyToStore)){
                     inventoryNeeds.put(keyToStore, new Hashtable<String, Integer>());  
                 }
-                // System.out.println("suussece fully inserted day month hour key");
-                //  As the key is pressent continuing inserting/updating count for each ingredient 
+
+                //  As the key is present continuing inserting/updating count for each ingredient's count 
                 Hashtable<String, Integer> drinkIngreds =drinkIngredients.get(singleOrder.drinkName);
                 // System.out.println("got required ingredients for each drink hashtable");
                 for(String ingredient: drinkIngreds.keySet()){
-                    // if(!inventoryNeeds.containsKey(keyToStore)){
                     Hashtable<String, Integer> invenTable = inventoryNeeds.get(keyToStore);
                     // System.out.println("got hashtable of a particular day hour month key");
+
+                    //  if the ingredientis not in hastable insert it and update value to number of units
+                    //  if key ispresnt update the value by adding additional units
                     if(!invenTable.containsKey(ingredient)){
                             invenTable.put(ingredient,drinkIngreds.get(ingredient));
                     }
@@ -123,7 +128,6 @@ public class Inventory{
                         inventoryNeeds.get(keyToStore).put(ingredient,invenTable.get(ingredient)+drinkIngreds.get(ingredient));
                     }
                 }
-    
             }
             return inventoryNeeds;
         }

@@ -1,8 +1,9 @@
 import java.util.Hashtable;
 
+//  class to hold the pre populated ingredient book
 public class Ingredient {
     public Hashtable<String,Hashtable<String, Integer>> drink_ingredients = new Hashtable<String,Hashtable<String, Integer>>();
-    // public Hashtable<String,Integer> dayOfWeek = new Hashtable<String,Integer>();
+    
     public Ingredient() {
         drink_ingredients.put("coffee", new Hashtable<String, Integer>());
         drink_ingredients.get("coffee").put("coffe",3);
